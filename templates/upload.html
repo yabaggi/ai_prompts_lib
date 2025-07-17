@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Prompts - AI Prompts Library</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f0f4f8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .upload-container {
+            max-width: 800px;
+            margin: 50px auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            color: #4361ee;
+            margin-bottom: 20px;
+        }
+        
+        .file-drop-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s;
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+        
+        .file-drop-area:hover, .file-drop-area.dragover {
+            border-color: #4361ee;
+            background-color: #eef4ff;
+        }
+        
+        .file-drop-area i {
+            font-size: 3rem;
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+        
+        .file-drop-area p {
+            color: #6c757d;
+            margin-bottom: 0;
+        }
+        
+        .file-drop-area .btn {
+            margin-top: 15px;
+        }
+        
+        .requirements {
+            background-color: #f8f9fa;
+            border-left: 4px solid #4361ee;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 25px;
+        }
+        
+        .requirements ul {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #4361ee, #3f37c9);">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-robot me-2"></i>
+                <span class="fw-bold">AI Prompts Library</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home me-1"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/upload"><i class="fas fa-upload me-1"></i> Upload</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container py-5">
+        <div class="upload-container">
+            <div class="text-center">
+                <div class="upload-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <h2 class="mb-3">Upload New Prompts</h2>
+                <p class="text-muted mb-4">Add new AI prompts to the library by uploading a CSV file</p>
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Upload Form -->
+                <form method="POST" action="/upload" enctype="multipart/form-data">
+                    <div class="file-drop-area" id="dropArea">
+                        <i class="fas fa-file-csv"></i>
+                        <p id="file-name">Drag & drop your CSV file here or click to browse</p>
+                        <input type="file" name="csv_file" id="file-input" accept=".csv" hidden>
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+                            <i class="fas fa-folder-open me-1"></i> Browse Files
+                        </button>
+                    </div>
+                    
+                    <div class="requirements">
+                        <h5 class="mb-3">File Requirements</h5>
+                        <ul>
+                            <li>File must be in CSV format with columns: <code>Group</code>, <code>Category</code>, <code>Prompt</code></li>
+                            <li>Maximum file size: 5MB</li>
+                            <li>Duplicate prompts will be skipped automatically</li>
+                        </ul>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg w-100 mt-4" id="submit-btn" disabled>
+                        <i class="fas fa-upload me-1"></i> Upload File
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="text-center text-muted">
+                &copy; 2023 AI Prompts Library | Built with Flask and SQLite
+            </div>
+        </div>
+    </footer>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // File input handling
+        const fileInput = document.getElementById('file-input');
+        const fileName = document.getElementById('file-name');
+        const dropArea = document.getElementById('dropArea');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        fileInput.addEventListener('change', function() {
+            if (this.files.length) {
+                fileName.textContent = this.files[0].name;
+                submitBtn.disabled = false;
+            }
+        });
+        
+        // Drag and drop functionality
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('dragover');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('dragover');
+        }
+        
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            
+            if (file) {
+                if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                    fileInput.files = dt.files;
+                    fileName.textContent = file.name;
+                    submitBtn.disabled = false;
+                } else {
+                    alert('Please upload a CSV file.');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
