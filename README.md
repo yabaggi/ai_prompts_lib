@@ -1,0 +1,1 @@
+collection of ai prompts
